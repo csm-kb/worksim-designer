@@ -1,11 +1,11 @@
 import "./style.css";
 
-import van, { State } from "vanjs-core";
+import van from "vanjs-core";
 
 // import { Counter } from "./counter";
 import { Chart } from "./chart";
 
-const { div, h1, p, button, code } = van.tags;
+const { div, h1, p, button, code, input } = van.tags;
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
 
@@ -62,24 +62,37 @@ const SimChart = (chartData: [number,number][]) => {
   });
 };
 
-
 const Main = () => {
-  // data is x/y pairs of [day, market cap in $T]
-  // there are 60 days in a year
-  var data = van.state<[number,number][]>([]);
-  var growthRate = 1 + (0.05 / 60);
-  (() => {
-    var newData: [number,number][] = [[0, 100.0]];
-    for (let i = 1; i < 2; i++) {
-      newData.push([i, newData[i - 1][1] * growthRate]);
-    }
-    data.val = newData;
-  })();
+  // var growthRate = 1 + (0.05 / 60);
+  // (() => {
+  //   var newData: [number,number][] = [[0, 100.0]];
+  //   for (let i = 1; i < 2; i++) {
+  //     newData.push([i, newData[i - 1][1] * growthRate]);
+  //   }
+  //   MoneyData.val = newData;
+  // })();
 
-  const addData = () => {
-    let dataValToAdd: [number,number] = [data.val.length, data.val[data.val.length - 1][1] * growthRate];
-    data.val = [...data.val, dataValToAdd];
-    // console.log(`Added data: ${dataValToAdd} | data len = ${data.val.length}`);
+  const uiDaysToSimCount = van.state<number>(1);
+  const uiShowDebugData = van.state<boolean>(false);
+
+  const InitialMarketCap = van.state<number>(100);
+  /**
+   * data is x/y pairs of [day, market cap in $T]
+   * -> there are 60 days in a year
+   */
+  const MoneyData = van.state<[number,number][]>([[0, InitialMarketCap.val]]);
+  /** yearly growth rate, as a percentage */
+  const YearlyGrowthRate = van.state<number>(5);
+
+  const TickSim = (dayCount: number = 1) => {
+    console.log("TickSim", dayCount);
+    for (let i = 0; i < dayCount; i++) {
+      let dataValToAdd: [number,number] = [MoneyData.val.length, MoneyData.val[MoneyData.val.length - 1][1] * (1 + ((YearlyGrowthRate.val / 100) / 60))];
+      MoneyData.val = [...MoneyData.val, dataValToAdd];
+    }
+  };
+  const ResetSim = () => {
+    MoneyData.val = [[0, InitialMarketCap.val]]
   };
 
   return div(
@@ -90,14 +103,69 @@ const Main = () => {
       { class: "title-text" },
       "Used for visualizing and tuning design data for Work Sim 1980."
     ),
-    button(
-      { onclick: addData },
-      "Add Data"
+    div(
+      "Initial Market Cap: $",
+      input(
+        {
+          type: "number",
+          value: InitialMarketCap.val,
+          oninput: (e) => InitialMarketCap.val = parseInt((e.target as HTMLInputElement).value),
+        },
+      ),
+      "T",
     ),
-    SimChart(data.val),
+    div(
+      "Yearly Growth Rate: ",
+      input(
+        {
+          type: "number",
+          value: YearlyGrowthRate.val,
+          oninput: (e) => YearlyGrowthRate.val = parseFloat((e.target as HTMLInputElement).value),
+        },
+      ),
+      "%",
+    ),
+    div(
+      input(
+        {
+          type: "number",
+          value: uiDaysToSimCount.val,
+          oninput: (e) => uiDaysToSimCount.val = parseInt((e.target as HTMLInputElement).value)
+        },
+      ),
+      " => ",
+      button(
+        {
+          onclick: () => TickSim(uiDaysToSimCount.val),
+          textContent: () => (`Simulate ${uiDaysToSimCount.val} Days`)
+        },
+      ),
+      button(
+        { onclick: ResetSim },
+        "Reset",
+      )
+    ),
+    () => SimChart(MoneyData.val),
     p(),
-    code(
-      { textContent: () => ("data = " + JSON.stringify(data.val)) }
+    div(
+      button(
+        { onclick: () => uiShowDebugData.val = !uiShowDebugData.val },
+        () => (((uiShowDebugData.val) ? "- Hide" : "+ Show") + " Debug Data"),
+      ),
+      p(),
+      div(
+        {
+          style: () => (
+            `display: ${uiShowDebugData.val ? "block" : "none"}; ` +
+            "background-color: #eee; " +
+            "padding: 1rem; " +
+            "border-radius: 0.5rem; " +
+            "font-family: monospace; " +
+            "white-space: pre;"
+          )
+        },
+        () => "MoneyData = " + JSON.stringify(MoneyData.val)
+      ),
     ),
   );
 };
