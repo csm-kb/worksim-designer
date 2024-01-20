@@ -5,7 +5,7 @@ import van from "vanjs-core";
 // import { Counter } from "./counter";
 import { Chart } from "./chart";
 
-const { div, h1, p, button, code, input } = van.tags;
+const { div, h1, p, button, input } = van.tags;
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
 
@@ -87,6 +87,10 @@ const Main = () => {
   const TickSim = (dayCount: number = 1) => {
     console.log("TickSim", dayCount);
     for (let i = 0; i < dayCount; i++) {
+      let isNewYear = (MoneyData.val.length % 60) === 0;
+      if (isNewYear) {
+        console.log("New Year!");
+      }
       let dataValToAdd: [number,number] = [MoneyData.val.length, MoneyData.val[MoneyData.val.length - 1][1] * (1 + ((YearlyGrowthRate.val / 100) / 60))];
       MoneyData.val = [...MoneyData.val, dataValToAdd];
     }
